@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll(['name', 'score', 'totalQuestions', 'totalTime', 'createdAt'])
+        && data.keys().hasOnly(['name', 'score', 'totalQuestions', 'totalTime', 'createdAt'])
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 20
+        && data.score is int
+        && data.score >= 0
+        && data.score <= 6
+        && data.totalQuestions is int
+        && data.totalQuestions == 6
+        && data.score <= data.totalQuestions
+        && data.totalTime is number
+        && data.totalTime >= 0
+        && data.totalTime <= 48
+        && data.createdAt == request.time;
+    }
+
+    match /leaderboard/{entryId} {
+      allow get: if isValidId(entryId);
+      allow list: if resource.data.score >= 0 && resource.data.score <= 6;
+      allow create: if isValidId(entryId) && isValidLeaderboardEntry(incoming());
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "A single player's official first-attempt score entry on the shared Christmas memory leaderboard.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Player display name or nickname"
+        },
+        "score": {
+          "type": "integer",
+          "description": "Number of correct answers (0 to 6)"
+        },
+        "totalQuestions": {
+          "type": "integer",
+          "description": "Total number of questions in the round (6)"
+        },
+        "totalTime": {
+          "type": "number",
+          "description": "Total elapsed answer time in seconds"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the score was recorded"
+        }
+      },
+      "required": ["name", "score", "totalQuestions", "totalTime", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/leaderboard/{entryId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Public shared leaderboard entries synced across all players and devices"
+    }
+  }
+}

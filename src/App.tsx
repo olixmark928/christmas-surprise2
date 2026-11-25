@@ -27,12 +27,14 @@ import {
 import { getUiText } from './i18n';
 import { sfx } from './utils/sound';
 import {
-  addLeaderboardRecord,
-  getLeaderboard,
+  addCloudLeaderboardRecord,
+  fetchCloudLeaderboard,
   getMySavedRecord,
   getSavedLanguage,
   saveLanguage,
   saveMyRecord,
+  sortLeaderboard,
+  subscribeCloudLeaderboard,
 } from './utils/storage';
 
 type GameScreen = 'WELCOME' | 'MEMORIZE' | 'ANSWER' | 'RESULT';
@@ -52,9 +54,7 @@ export default function App() {
   const [savedRecord, setSavedRecord] = useState<LeaderboardRecord | null>(() =>
     getMySavedRecord()
   );
-  const [leaderboard, setLeaderboard] = useState<LeaderboardRecord[]>(() =>
-    getLeaderboard()
-  );
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRecord[]>([]);
 
   const [selectedQuestions, setSelectedQuestions] = useState<QuestionItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -120,6 +120,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = subscribeCloudLeaderboard((records) => {
+      setLeaderboard(records);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     return () => clearTimers();
   }, [clearTimers]);
 
@@ -137,7 +144,7 @@ export default function App() {
       );
 
       const newRecord: LeaderboardRecord = {
-        id: `rec_${Date.now()}`,
+        id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         name: playerName,
         score,
         totalQuestions: TOTAL_QUESTIONS,
@@ -148,18 +155,23 @@ export default function App() {
       const existingRecord = getMySavedRecord();
       if (isPracticeRef.current || existingRecord) {
         setActiveRecord(newRecord);
-        setLeaderboard(getLeaderboard());
         setScreen('RESULT');
+        void fetchCloudLeaderboard()
+          .then(setLeaderboard)
+          .catch((err) => console.error(err));
         return;
       }
 
       saveMyRecord(newRecord);
-      const updatedBoard = addLeaderboardRecord(newRecord);
-
       setSavedRecord(newRecord);
       setActiveRecord(newRecord);
-      setLeaderboard(updatedBoard);
+      setLeaderboard((prev) =>
+        sortLeaderboard([...prev.filter((item) => item.id !== newRecord.id), newRecord])
+      );
       setScreen('RESULT');
+      void addCloudLeaderboardRecord(newRecord).catch((err) => {
+        console.error(err);
+      });
     },
     [clearTimers]
   );
@@ -431,9 +443,11 @@ export default function App() {
   };
 
   const handleOpenLeaderboard = (record: LeaderboardRecord | null) => {
-    setLeaderboard(getLeaderboard());
     setActiveRecord(record);
     setScreen('RESULT');
+    void fetchCloudLeaderboard()
+      .then(setLeaderboard)
+      .catch((err) => console.error(err));
   };
 
   const currentQuestion = selectedQuestions[currentIndex];
