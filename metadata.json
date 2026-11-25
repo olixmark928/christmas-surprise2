@@ -1,0 +1,6 @@
+{
+  "name": "聖誕瞬間記憶大挑戰",
+  "description": "一款結合倒數計時、節慶 SVG 插畫、Web Audio 合成音效、錯題回顧與排行榜的聖誕瞬間記憶問答遊戲，並支援匯出完整單一 HTML 檔案。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
