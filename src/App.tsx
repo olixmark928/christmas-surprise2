@@ -28,7 +28,6 @@ import { getUiText } from './i18n';
 import { sfx } from './utils/sound';
 import {
   addLeaderboardRecord,
-  clearMyRecord,
   getLeaderboard,
   getMySavedRecord,
   getSavedLanguage,
@@ -85,6 +84,7 @@ export default function App() {
   const answerStartTimeRef = useRef<number>(0);
   const answerLockedRef = useRef<boolean>(false);
   const gameFinishedRef = useRef<boolean>(false);
+  const isPracticeRef = useRef<boolean>(false);
   const resultsRef = useRef<PlayerQuestionResult[]>([]);
 
   const t = getUiText(lang);
@@ -144,6 +144,14 @@ export default function App() {
         totalTime,
         createdAt: Date.now(),
       };
+
+      const existingRecord = getMySavedRecord();
+      if (isPracticeRef.current || existingRecord) {
+        setActiveRecord(newRecord);
+        setLeaderboard(getLeaderboard());
+        setScreen('RESULT');
+        return;
+      }
 
       saveMyRecord(newRecord);
       const updatedBoard = addLeaderboardRecord(newRecord);
@@ -321,6 +329,7 @@ export default function App() {
 
     clearTimers();
     setNameError(false);
+    isPracticeRef.current = false;
     const picked = pickRandomQuestions(TOTAL_QUESTIONS);
     resultsRef.current = [];
     answerLockedRef.current = false;
@@ -401,12 +410,24 @@ export default function App() {
     setIsMuted(muted);
   };
 
-  const handleResetLock = () => {
-    clearMyRecord();
-    setSavedRecord(null);
-    setActiveRecord(null);
-    setPlayerResults([]);
+  const handleReplayUnscored = () => {
+    if (!savedRecord) return;
+    sfx.unlock();
+    clearTimers();
+    isPracticeRef.current = true;
+    const picked = pickRandomQuestions(TOTAL_QUESTIONS);
     resultsRef.current = [];
+    answerLockedRef.current = false;
+    gameFinishedRef.current = false;
+    answerStartTimeRef.current = 0;
+    setSelectedQuestions(picked);
+    setPlayerResults([]);
+    setCurrentPlayerName(savedRecord.name);
+    setCurrentIndex(0);
+    setSelectedOptionIndex(null);
+    setAnswerLocked(false);
+    setAnswerFeedback(null);
+    setScreen('MEMORIZE');
   };
 
   const handleOpenLeaderboard = (record: LeaderboardRecord | null) => {
@@ -675,7 +696,7 @@ export default function App() {
                       </button>
                       <button
                         type="button"
-                        onClick={handleResetLock}
+                        onClick={handleReplayUnscored}
                         className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-6 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-sm transition-colors cursor-pointer whitespace-nowrap"
                       >
                         <RotateCcw className="w-4 h-4" />
